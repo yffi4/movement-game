@@ -3,8 +3,6 @@ import { v4 as uuidv4 } from "uuid";
 import GameField from "./components/GameField";
 import PlayerList from "./components/PlayerList";
 import { addPlayer, removePlayer } from "./services/firebase";
-import { connectWebSocket } from "./services/websocket";
-import { usePlayerMovement } from "./hooks/usePlayerMovement";
 
 const FIELD_WIDTH = 800;
 const FIELD_HEIGHT = 600;
@@ -13,39 +11,7 @@ function App() {
   const [playerId] = useState(() => uuidv4());
   const [playerName, setPlayerName] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(true);
-  const [connectionError, setConnectionError] = useState(null);
-
-  useEffect(() => {
-    let retryCount = 0;
-    const maxRetries = 5;
-    const retryInterval = 2000; // 2 seconds
-
-    const tryConnect = () => {
-      setIsConnecting(true);
-      setConnectionError(null);
-
-      connectWebSocket()
-        .then(() => {
-          setIsConnecting(false);
-          setConnectionError(null);
-          retryCount = 0;
-        })
-        .catch((error) => {
-          console.error("Connection error:", error);
-          setConnectionError("Failed to connect to game server");
-
-          if (retryCount < maxRetries) {
-            retryCount++;
-            setTimeout(tryConnect, retryInterval);
-          } else {
-            setIsConnecting(false);
-          }
-        });
-    };
-
-    tryConnect();
-  }, []);
+  const [error, setError] = useState(null);
 
   const getRandomColor = () => {
     const colors = [
@@ -61,9 +27,7 @@ function App() {
 
   const handleStartGame = async (e) => {
     e.preventDefault();
-    if (isConnecting || connectionError) {
-      return;
-    }
+    setError(null);
 
     try {
       const initialX = Math.floor(Math.random() * (FIELD_WIDTH - 10) + 5);
@@ -79,7 +43,7 @@ function App() {
       setIsPlaying(true);
     } catch (error) {
       console.error("Error starting game:", error);
-      setConnectionError("Failed to join the game. Please try again.");
+      setError("Failed to join the game. Please try again.");
     }
   };
 
@@ -123,9 +87,8 @@ function App() {
               borderRadius: "4px",
               border: "none",
             }}
-            disabled={isConnecting}
           />
-          {connectionError && (
+          {error && (
             <div
               style={{
                 color: "#ff4444",
@@ -133,51 +96,23 @@ function App() {
                 textAlign: "center",
               }}
             >
-              {connectionError}
+              {error}
             </div>
           )}
           <button
             type="submit"
             style={{
               padding: "8px",
-              backgroundColor:
-                isConnecting || connectionError ? "#666" : "#4CAF50",
+              backgroundColor: "#4CAF50",
               color: "white",
               border: "none",
               borderRadius: "4px",
-              cursor:
-                isConnecting || connectionError ? "not-allowed" : "pointer",
-              position: "relative",
+              cursor: "pointer",
             }}
-            disabled={isConnecting || connectionError}
           >
-            {isConnecting ? "Connecting..." : "Join Game"}
-            {isConnecting && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                  width: "20px",
-                  height: "20px",
-                  border: "2px solid #ffffff",
-                  borderTop: "2px solid transparent",
-                  borderRadius: "50%",
-                  animation: "spin 1s linear infinite",
-                }}
-              />
-            )}
+            Join Game
           </button>
         </form>
-        <style>
-          {`
-            @keyframes spin {
-              0% { transform: translate(-50%, -50%) rotate(0deg); }
-              100% { transform: translate(-50%, -50%) rotate(360deg); }
-            }
-          `}
-        </style>
       </div>
     );
   }

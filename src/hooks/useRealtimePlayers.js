@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { subscribeToPlayers, getPlayers } from "../services/firebase";
-import { subscribeToMovements } from "../services/websocket";
 
 export const useRealtimePlayers = () => {
   const [players, setPlayers] = useState({});
@@ -11,8 +10,8 @@ export const useRealtimePlayers = () => {
       setPlayers(initialPlayers);
     });
 
-    // Subscribe to Firebase for player join/leave events
-    const firebaseCleanup = subscribeToPlayers(
+    // Subscribe to Firebase for player events
+    const unsubscribe = subscribeToPlayers(
       // Player added
       (playerId, playerData) => {
         setPlayers((prev) => ({
@@ -20,7 +19,7 @@ export const useRealtimePlayers = () => {
           [playerId]: playerData,
         }));
       },
-      // Player moved (from Firebase, for persistence)
+      // Player moved
       (playerId, playerData) => {
         setPlayers((prev) => ({
           ...prev,
@@ -40,20 +39,8 @@ export const useRealtimePlayers = () => {
       }
     );
 
-    // Subscribe to WebSocket for real-time movement updates
-    const wsCleanup = subscribeToMovements((playerId, position) => {
-      setPlayers((prev) => ({
-        ...prev,
-        [playerId]: {
-          ...prev[playerId],
-          ...position,
-        },
-      }));
-    });
-
     return () => {
-      firebaseCleanup();
-      wsCleanup();
+      unsubscribe();
     };
   }, []);
 

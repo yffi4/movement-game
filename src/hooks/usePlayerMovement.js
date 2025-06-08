@@ -1,6 +1,5 @@
 import { useEffect, useCallback, useState, useRef } from "react";
 import { updatePlayerPosition } from "../services/firebase";
-import { broadcastMovement } from "../services/websocket";
 
 const SPEED = 3;
 const FIELD_WIDTH = 800;
@@ -28,10 +27,8 @@ export const usePlayerMovement = (playerId, initialX, initialY) => {
         setPosition({ x, y });
 
         try {
-          // Update position in Firebase (for persistence)
+          // Update position in Firebase
           await updatePlayerPosition(playerId, x, y);
-          // Broadcast movement through WebSocket (for real-time updates)
-          broadcastMovement(playerId, x, y);
         } catch (error) {
           console.error("Error updating position:", error);
         }
@@ -62,7 +59,6 @@ export const usePlayerMovement = (playerId, initialX, initialY) => {
     }
 
     if (moved) {
-      console.log("Moving to:", x, y);
       movePlayer(x, y);
     }
 
@@ -75,7 +71,6 @@ export const usePlayerMovement = (playerId, initialX, initialY) => {
       if (["w", "a", "s", "d"].includes(key)) {
         e.preventDefault();
         keys.current[key] = true;
-        console.log("Key down:", key, keys.current);
       }
     };
 
@@ -84,7 +79,6 @@ export const usePlayerMovement = (playerId, initialX, initialY) => {
       if (["w", "a", "s", "d"].includes(key)) {
         e.preventDefault();
         keys.current[key] = false;
-        console.log("Key up:", key, keys.current);
       }
     };
 
